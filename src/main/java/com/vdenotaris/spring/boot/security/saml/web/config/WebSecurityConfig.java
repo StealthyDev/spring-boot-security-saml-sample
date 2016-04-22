@@ -16,6 +16,7 @@
 
 package com.vdenotaris.spring.boot.security.saml.web.config;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.protocol.Protocol;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.velocity.app.VelocityEngine;
+import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
 import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -204,11 +206,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public KeyManager keyManager() {
         DefaultResourceLoader loader = new DefaultResourceLoader();
         Resource storeFile = loader
-                .getResource("classpath:/saml/samlKeystore.jks");
-        String storePass = "nalle123";
+                .getResource("classpath:/saml/ping.jks");
+        String storePass = "Test333#";
         Map<String, String> passwords = new HashMap<String, String>();
-        passwords.put("apollo", "nalle123");
-        String defaultKey = "apollo";
+        passwords.put("ping", "Test333#");
+        String defaultKey = "ping";
         return new JKSKeyManager(storeFile, storePass, passwords, defaultKey);
     }
  
@@ -270,23 +272,21 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         idpDiscovery.setIdpSelectionPath("/saml/idpSelection");
         return idpDiscovery;
     }
-    
+
 	@Bean
 	@Qualifier("idp-ssocircle")
 	public ExtendedMetadataDelegate ssoCircleExtendedMetadataProvider()
 			throws MetadataProviderException {
-		String idpSSOCircleMetadataURL = "https://idp.ssocircle.com/idp-meta.xml";
-		Timer backgroundTaskTimer = new Timer(true);
-		HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(
-				backgroundTaskTimer, httpClient(), idpSSOCircleMetadataURL);
-		httpMetadataProvider.setParserPool(parserPool());
-		ExtendedMetadataDelegate extendedMetadataDelegate = 
-				new ExtendedMetadataDelegate(httpMetadataProvider, extendedMetadata());
+        Timer backgroundTaskTimer = new Timer(true);
+        FilesystemMetadataProvider metadataProvider = new FilesystemMetadataProvider(backgroundTaskTimer, new File("C:/data/docmerge/ping-sso-metadata.xml"));
+        metadataProvider.setParserPool(parserPool());
+		ExtendedMetadataDelegate extendedMetadataDelegate =
+				new ExtendedMetadataDelegate(metadataProvider, extendedMetadata());
 		extendedMetadataDelegate.setMetadataTrustCheck(true);
 		extendedMetadataDelegate.setMetadataRequireSignature(false);
 		return extendedMetadataDelegate;
 	}
- 
+
     // IDP Metadata configuration - paths to metadata of IDPs in circle of trust
     // is here
     // Do no forget to call iniitalize method on providers
@@ -297,18 +297,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         providers.add(ssoCircleExtendedMetadataProvider());
         return new CachingMetadataManager(providers);
     }
- 
+
     // Filter automatically generates default SP metadata
     @Bean
     public MetadataGenerator metadataGenerator() {
         MetadataGenerator metadataGenerator = new MetadataGenerator();
-        metadataGenerator.setEntityId("com:vdenotaris:spring:sp");
+        metadataGenerator.setEntityId("html-idp-form");
         metadataGenerator.setExtendedMetadata(extendedMetadata());
         metadataGenerator.setIncludeDiscoveryExtension(false);
-        metadataGenerator.setKeyManager(keyManager()); 
+        metadataGenerator.setKeyManager(keyManager());
         return metadataGenerator;
     }
- 
+
     // The filter is waiting for connections on URL suffixed with filterSuffix
     // and presents SP metadata there
     @Bean
